@@ -1,0 +1,51 @@
+# Define the system of units to use internally.
+InternalUnitSystem:
+  UnitMass_in_cgs:     4.4356e+44
+  UnitLength_in_cgs:   3.086e+21 # kpc
+  UnitVelocity_in_cgs: 9.78469e+07       # km / s
+  UnitCurrent_in_cgs:  1         # Amperes
+  UnitTemp_in_cgs:     1         # Kelvin
+
+# Parameters governing the time integration
+TimeIntegration:
+  time_begin:          0.      # The starting time of the simulation (in internal units).
+  time_end:            15.0     # The end time of the simulation (in internal units).
+  dt_min:              1e-11   # The minimal time-step size of the simulation (in internal units).
+  dt_max:              0.03    # The maximal time-step size of the simulation (in internal units).
+
+# Parameters for the self-gravity scheme
+Gravity:
+  eta:                           0.002      # Constant dimensionless multiplier for time integration.
+  MAC:                           geometric  # Choice of mulitpole acceptance criterion: 'adaptive' OR 'geometric'.
+  epsilon_fmm:                   0.001      # Tolerance parameter for the adaptive multipole acceptance criterion.
+  theta_cr:                      0.7        # Opening angle for the purely gemoetric criterion.
+  max_physical_DM_softening:     0.02      # Physical softening length (in internal units).
+  mesh_side_length:        32
+  
+# Parameters governing the snapshots
+Snapshots:
+  basename:            snap/snapshot  # Common part of the name of output files
+  time_first:          0.        # Time of the first output (in internal units)
+  delta_time:          0.05      # Time difference between consecutive outputs (in internal units)
+
+# Scheduler Options
+Scheduler:
+  tasks_per_cell:  10
+  
+# Parameters related to the initial conditions
+InitialConditions:
+  file_name:          miyamoto.hdf5 # The file to read
+  shift:              [10.,10.,10.]
+  periodic:           0
+
+# External Potential (NFW halo is "set to zero" so that only MN potential is felt by the particles)
+NFW_MNPotential:
+    useabspos:        0              # 0 -> positions based on centre, 1 -> absolute positions
+    position:         [0.,0.,0.]     # Location of centre of isothermal potential with respect to centre of the box (if 0) otherwise absolute (if 1) (internal units)
+    M_200:            1e-20          # M200 of the halo in internal units
+    critical_density: 1.0          # Critical density of the universe in internal units
+    concentration:    1.0            # concentration of the NFW halo
+    Mdisk:            1.0            # Mass of the disk in internal units
+    Rdisk:            1.0            # Disk scale-length in internal units
+    Zdisk:            1.0            # Disk scale-height in internal units
+    timestep_mult:    0.01           # Dimensionless pre-factor for the time-step condition, basically determines the fraction of the orbital time we use to do the time integration
