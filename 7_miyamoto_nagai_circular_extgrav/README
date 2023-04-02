@@ -1,0 +1,7 @@
+EXAMPLE 7: Miyamoto-Nagai Disk, circular orbits
+
+In this example, we look at circular orbits in a Miyamoto-Nagai Potential, without self-gravity.
+
+=== Instructions To Run ==
+1. Compile SWIFT using the following configuration flags:
+--disable-compiler-warnings --disable-doxygen-doc --disable-hand-vec --with-hdf5=/usr/local/hdf5/bin/h5cc --with-metis=/usr/local/ --with-ext-potential=nfw-mn
