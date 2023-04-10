@@ -2,12 +2,11 @@ import numpy as np
 from pNbody import ic
 import argparse
 
-parser = argparse.ArgumentParser(description="Create IC of a box with optional density perturbation")
+parser = argparse.ArgumentParser(description="Create IC of a homogeneous slab")
 
 parser.add_argument("-l",type=float,default=0.25,help="wavelength of the perturbation")
 parser.add_argument("-lJ",type=float,default=0.25,help="Jeans Wavelength")
-parser.add_argument("-o",type=str,default="box.hdf5",help="Output Filename")
-parser.add_argument("--hydro",action='store_true',help="Use Hydro Mode")
+parser.add_argument("-o",type=str,default="slab.hdf5",help="Output Filename")
 parser.add_argument("-N",type=int,default=250000,help="Number of Particles")
 parser.add_argument("-f",type=str,default='swift',help="Format of the IC file (swift,gadget")
 
@@ -33,9 +32,8 @@ print(f"Sigma = {sigma:.3f}")
 
 k = 2*np.pi/l # wave number
 
-
 # Create Nbody object from IC module and set unit system
-nb = ic.box(n, L/2.,L/2.,L/2., irand=1, name=args.o,ftype=args.f)
+nb = ic.box(n, L/2.,L/2.,0.0, irand=1, name=args.o,ftype=args.f)
 nb.set_tpe(1)
 nb.verbose = 1
 nb.UnitLength_in_cm = 3.086e+21
@@ -50,9 +48,8 @@ nb.pos += L/2.0
 #nb.pos[:,0] = nb.x() + e*np.cos(k*nb.x()) / k
 
 # Set Velocities
-nb.vel[:,0] = np.random.normal(scale=sigma/np.sqrt(3),size=n)
-nb.vel[:,1] = np.random.normal(scale=sigma/np.sqrt(3),size=n)
-nb.vel[:,2] = np.random.normal(scale=sigma/np.sqrt(3),size=n)
+nb.vel[:,0] = np.random.normal(scale=sigma/np.sqrt(2),size=n)
+nb.vel[:,1] = np.random.normal(scale=sigma/np.sqrt(2),size=n)
 print("vmax = {}".format(nb.vx().max()))
 
 # Set Mass
