@@ -1,0 +1,7 @@
+By default, the IC script generates initial conditions with 250k particles in a box of size 1.
+The -lJ flag can be used to specify a Jeans length that sets the velocity dispersion through
+the formula seen in class.
+
+To visualize the stability at different scales, set -lJ to different values in the range 0.1 - 2.0.
+Above 1.0, the system should theoretically be stable, you can check for yourself if it is the case.
+The examples shown in the lecture correspond to lJ=0.25, 0.4, 0.7,...

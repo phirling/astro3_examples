@@ -1,8 +1,0 @@
-# Generate
-./autogen.sh
-
-# Configure
-./configure --disable-compiler-warnings --disable-doxygen-doc --disable-hand-vec --with-hdf5=/usr/local/hdf5/bin/h5cc --with-metis=/usr/local/ --with-ext-potential=point-mass-softened
-
-# Make
-make -j 4

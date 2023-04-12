@@ -1,3 +1,6 @@
 #!/bin/bash
+SWIFT=../swiftsim/swift     # Location of the SWIFT executable file
+NTHREADS=8                  # Number of MPI ranks to use (e.g. number of cores)
 
-../../../swiftsim/swift --self-gravity --threads=4 params.yml 2>&1 | tee output.log
+$SWIFT --self-gravity --threads=$NTHREADS params.yml 2>&1 | tee output.log
+

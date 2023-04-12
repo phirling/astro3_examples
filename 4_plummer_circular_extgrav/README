@@ -1,0 +1,9 @@
+This example follows particles in an EXTERNAL plummer potential on circular trajectories.
+
+To use it, SWIFT has to be compiled with the flag --with-ext-potential=point-mass-softened (set at configuration time).
+
+Be careful to set the parameters of the external potential (in params.yml) to the same values as those of the IC file
+(set in makeIC.py). Namely, the position, softening length and total mass of the potential. The postition is equivalent
+to the shift.
+
+The default is a potential with softening length 0.1 and total mass 1.0.

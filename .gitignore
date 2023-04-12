@@ -20,6 +20,7 @@ __pycache__/
 **/unused_parameters.yml
 **/used_parameters.yml
 **/timesteps_4.txt
+**/timesteps.txt
 **/task_level_0.txt
 **/dependency_graph_0.csv
 **/snapshot.xmf
