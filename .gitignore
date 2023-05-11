@@ -24,6 +24,7 @@ __pycache__/
 **/task_level_0.txt
 **/dependency_graph_0.csv
 **/snapshot.xmf
+**/Archive
 
 # DS STORE
 .DS_STORE

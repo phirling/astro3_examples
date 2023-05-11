@@ -42,6 +42,11 @@ X = np.array([x, y, z]).transpose()
 # Generate Velocities for purely circular orbits
 vv = np.sqrt(G * M * r_rand**2 * (r_rand**2 + a**2)**(-3. / 2.))
 
+# Estimate Dynamical time:
+v_a = np.sqrt(G * M * a**2 * (a**2 + a**2)**(-3. / 2.))
+tdyn = 2*np.pi*a / v_a
+print("Dynamical time estimate (internal units): ",tdyn)
+
 # Convert to Cartesian
 # First: project vt on e_theta, e_phi with random orientation
 alph = np.random.uniform(0, 2 * np.pi, N)

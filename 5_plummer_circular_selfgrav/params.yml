@@ -1,15 +1,15 @@
 # Define the system of units to use internally.
 InternalUnitSystem:
-  UnitMass_in_cgs:     1.988e+43 # 10^10 Solar masses
-  UnitLength_in_cgs:   3.086e+21 # kpc
-  UnitVelocity_in_cgs: 1e5       # km / s
+  UnitMass_in_cgs:     4.4356e+44
+  UnitLength_in_cgs:   3.085e+21
+  UnitVelocity_in_cgs: 9.78469e+07
   UnitCurrent_in_cgs:  1         # Amperes
   UnitTemp_in_cgs:     1         # Kelvin
 
 # Parameters governing the time integration
 TimeIntegration:
   time_begin:          0.      # The starting time of the simulation (in internal units).
-  time_end:            1.0     # The end time of the simulation (in internal units).
+  time_end:            3.0     # The end time of the simulation (in internal units).
   dt_min:              1e-11   # The minimal time-step size of the simulation (in internal units).
   dt_max:              1e-3    # The maximal time-step size of the simulation (in internal units).
 
@@ -34,5 +34,5 @@ Statistics:
 # Parameters related to the initial conditions
 InitialConditions:
   file_name:          plummer.hdf5 # The file to read
-  shift:              [2.,2.,2.]
+  shift:              [0.5,0.5,0.5]
   periodic:           0

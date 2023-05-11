@@ -7,3 +7,9 @@ Be careful to set the parameters of the external potential (in params.yml) to th
 to the shift.
 
 The default is a potential with softening length 0.1 and total mass 1.0.
+
+For this example, SWIFT was compiled with the following configuration:
+
+./configure --disable-compiler-warnings --disable-doxygen-doc --disable-hand-vec --with-ext-potential=point-mass-softened --with-hdf5=/usr/local/hdf5/bin/h5cc --with-metis=/usr/local/
+
+(The location of the hdf5 and metis libraries may vary on your system)
