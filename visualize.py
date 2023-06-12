@@ -21,15 +21,17 @@
 
 import numpy as np
 import argparse
-import h5py
 from matplotlib import pyplot as plt
-from matplotlib.colors import Normalize, LogNorm, PowerNorm
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 import pickle as pkl
 from tqdm import tqdm
 from pNbody.libutil import set_ranges
 from pNbody import Nbody
+try:
+    import cmasher as cmr
+except ImportError:
+    pass
 
 # ================
 # Parse User input
@@ -113,6 +115,7 @@ elif len(sh) == 3:
 else:
     raise ValueError("Shift can be scalar or 3-array")
 
+# Setup Parameters for pNbody mapping
 # TODO: adapt
 scale   = "log"
 mn      = None
@@ -143,7 +146,7 @@ if not args.openextract:
     for i,fn in enumerate(tqdm(fnames)):
         nb = Nbody(fn,ftype='swift')
         nb.translate(-shift)
-        hh = 1e6*nb.CombiMap(params) # Multiply by 1M to ensure that close to 0 values are saved correctly
+        hh = 1e6 * np.rot90( nb.CombiMap(params) ) # Multiply by 1M to ensure that close to 0 values are saved correctly
         histdata[i] = hh
         times[i] = nb.time
 
@@ -220,7 +223,6 @@ else:
 # Define imshow extent
 ext = (-lim,lim,-lim,lim)
 
-
 # Set axes limits and add labels if desired
 ax.set_xlim(-lim,lim)
 ax.set_ylim(-lim,lim)
@@ -234,13 +236,14 @@ else:
 
 
 # Initialize Image
+cmap = plt.get_cmap(args.cmap)
 im = ax.imshow(np.zeros((args.nbins,args.nbins)),
                 interpolation = args.interp,
                 vmin=0,vmax=255,
-                extent = ext, cmap = args.cmap,origin='lower')
+                extent = ext, cmap = cmap,origin='lower')
 
 # Initialize Title
-ttl = ax.text(0.01, 0.99,"$t={:.2f}$".format(0)+ time_unitstr,
+ttl = ax.text(0.01, 0.99,"$t={:.2f}$".format(times[0])+ time_unitstr,
     horizontalalignment='left',
     verticalalignment='top',
     color = 'white',
