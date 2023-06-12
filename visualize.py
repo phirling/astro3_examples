@@ -28,6 +28,7 @@ import pickle as pkl
 from tqdm import tqdm
 from pNbody.libutil import set_ranges
 from pNbody import Nbody
+# We include CMasher colormaps if the package is installed (e.g. -cmap cmr.dusk)
 try:
     import cmasher as cmr
 except ImportError:
@@ -40,25 +41,31 @@ except ImportError:
 parser = argparse.ArgumentParser(description="Extract data from SWIFT snapshot(s) and create film/image")
 
 # Snapshot Parameters
-parser.add_argument("files",nargs='+',help="snapshot files to be imaged")
-parser.add_argument("-shift",nargs='*', type=float, default=[0.0], help="Shift applied to particles in params.yml [Either a single value or triple (x y z)]")
+parser.add_argument("files",nargs='+',help="Snapshot files to be imaged")
+parser.add_argument("-shift",nargs='*', type=float, default=[0.0], help="Shift applied to particles, sets the origin of the image. Either a single value or 3D position (x y z)")
 parser.add_argument("--openextract",action='store_true',help="Open a previous pickled extract file (in this case the first argument is interpreted as the file)")
 parser.add_argument("--saveextract",action='store_true',help="Save the extracted data as a pickle file")
 
 # Histogram Parameters
 parser.add_argument("-nbins",type=int,default=400,help="Number of bins in each dimension (x,y)")
-parser.add_argument("-lim",type=float,default=0.5,help="Limits of histogram (in kpc)")
+parser.add_argument("-lim",type=float,default=0.5,help="Physical limit (max position) of the histogram (-lim,lim,-lim,lim). Use -shift to set the origin")
 parser.add_argument("-view",type=str,default='xy',help="Which plane to image")
+parser.add_argument("-mode",type=str,default='m',help="Physical quantity to be imaged, default: 'm' (mass density)")
 
 # Image Parameters (Color, normalization,etc)
-parser.add_argument("-cmap",type=str,default='YlGnBu_r',help="Colormap (try YlGnBu_r, Magma !)")
-parser.add_argument("-cmin",type=float,default=None,help=
-                    """Minimum Physical value in the Histogram.
-                    This effectively sets the contrast of the images. Default: data minimum""")
+parser.add_argument("-cmap",type=str,default='YlGnBu_r',help="Colormap (try YlGnBu_r, Magma !). Cmasher cmaps are available, e.g. cmr.dusk, cmr.ocean,...")
+parser.add_argument("-cmin",type=float,default=None,help= "Minimum Physical value in the Histogram. This effectively sets the contrast of the images. Default: data minimum")
 parser.add_argument("-cmax",type=float,default=None,help="Maximum physical value in the Histogram. Default: data maximum")
 parser.add_argument("-interp",type=str,default='none',help="Interpolation used ('none','kaiser','gaussian',...). Default: none")
+parser.add_argument("-frsp",type=float,default=0.0,help="Smoothing Factor (times rsp)")
+parser.add_argument("-scale",type=str,default='log',help="Color scaling to use ('log' or 'lin'). Default is log")
 
-# Figure Parameterrs
+# Observer Parameters
+parser.add_argument("-x0",nargs=3,type=float, default = None,help="Position of Observer")
+parser.add_argument("-xp",nargs=3,type=float, default = [0,0,0] ,help="Look-at point")
+parser.add_argument("-alpha",type=float, default=0.0,help="Head Tilt angle")
+
+# Figure Parameters
 parser.add_argument("--notex",action='store_true')
 parser.add_argument("-figheight",type=float,default=8,help="Height of figure in inches")
 parser.add_argument("-figwidth",type=float,default=8,help="Width of figure in inches")
@@ -93,8 +100,9 @@ args = parser.parse_args()
 fnames = args.files
 lim = args.lim
 sh = args.shift
+nbins = args.nbins
 
-# Corotation
+# TODO: Corotation. Should this be kept now that the view axis is possibly not normal to the xy plane ?
 corot = args.rcr > 0
 if corot:
     omega = -args.vcr / args.rcr
@@ -107,7 +115,7 @@ if corot:
         y = np.sin(omega*t)*X + np.cos(omega*t)*Y - y0
         return x,y
     
-# Shift
+# Convert 3D shift to array
 if len(sh) == 1:
     shift = np.array([sh[0],sh[0],sh[0]])
 elif len(sh) == 3:
@@ -116,37 +124,55 @@ else:
     raise ValueError("Shift can be scalar or 3-array")
 
 # Setup Parameters for pNbody mapping
-# TODO: adapt
-scale   = "log"
-mn      = None
-mx      = None
+# https://obswww.unige.ch/~revaz/pNbody/rst/Display.html
+# TODO: Make perspective view work
+scale   = args.scale
 cd      = None
-frsp    = 0 #2.5
 params = {}
 params['size']  	= (lim,lim)
-params['shape'] 	= (args.nbins,args.nbins)
+params['shape'] 	= (nbins,nbins)
 params['rendering']	= 'map'
 params['obs'] 	= None
-params['xp']  	= None
 params['view']	= args.view
-params['mode']	= 'm'
+params['persp'] = 'off'
+# params['clip'] = (0,100000000)
+# params['r_obs'] = 2
+params['mode']	= args.mode
 params['exec']	= None
 params['macro']	= None
-params['frsp']	= frsp
-params['filter_name'] = None 
+params['frsp']	= args.frsp
+params['filter_name'] = None
+
+# Setup Observer
+if args.x0 is None:
+    params['x0'] = None
+else:
+    params['x0'] = np.array(args.x0)
+if args.xp is None:
+    params['xp'] = None
+else:
+    params['xp'] = np.array(args.xp)
+params['alpha'] = args.alpha
+print(params['x0'])
+
+# Show Progress Bar only if multiple files
+def progbar(iterable):
+    if len(iterable) == 1: return iterable
+    else: return tqdm(iterable)
 
 # ============================================================
 # Extract Data from the snapshot(s) or load a previous extract
 # ============================================================
+# If a list of snapshots is given, loop over files and extract image matrix
 if not args.openextract:
     nframes = len(fnames)
-    histdata = np.zeros((nframes,args.nbins,args.nbins),dtype=np.uint32)
+    histdata = np.zeros((nframes,nbins,nbins))
     times = np.empty(nframes)
     print("Extracting Data...")
-    for i,fn in enumerate(tqdm(fnames)):
+    for i,fn in enumerate(progbar(fnames)):
         nb = Nbody(fn,ftype='swift')
         nb.translate(-shift)
-        hh = 1e6 * np.rot90( nb.CombiMap(params) ) # Multiply by 1M to ensure that close to 0 values are saved correctly
+        hh = np.rot90( nb.CombiMap(params) ) # CombiMap renders a matrix of a physical quantity, e.g. mass density
         histdata[i] = hh
         times[i] = nb.time
 
@@ -171,6 +197,7 @@ if not args.openextract:
             with open('extract.pkl','wb') as f:
                 pkl.dump(output,f)
 
+# If extract is given, read image matrix and metadata
 else:
     if len(fnames) == 1:
         print("Reading "+fnames[0]+"...")
@@ -237,7 +264,7 @@ else:
 
 # Initialize Image
 cmap = plt.get_cmap(args.cmap)
-im = ax.imshow(np.zeros((args.nbins,args.nbins)),
+im = ax.imshow(np.zeros((nbins,nbins)),
                 interpolation = args.interp,
                 vmin=0,vmax=255,
                 extent = ext, cmap = cmap,origin='lower')
@@ -254,7 +281,7 @@ if nframes == 1:
     hdat,mn_opt,mx_opt,cd_opt = set_ranges(histdata[0],scale=scale,cd=cd,mn=vmin,mx=vmax)
     im.set_data(hdat)
 
-# If multiple files are passed and a dynamical output is wished, launch animation
+# If multiple files are passed, make an animation
 elif not args.saveframes:
     # Closure function to use global image & title object with blitting
     def prepare_anim(im,title):

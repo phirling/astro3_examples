@@ -15,6 +15,9 @@ __pycache__/
 # Pictures and Videos
 *.mp4
 
+# Pictures
+*.png
+
 # SWIFT files
 *.rst
 *.rst.prev
