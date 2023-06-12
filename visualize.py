@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
-# ^^^^^
-# Make script executable via symlink and use conda env python
-
 ###########################################################################
-# Copyright (c) 2023 Patrick Hirling (patrick.hirling@epfl.ch)
+# Copyright (c) 2023 Yves Revaz & Patrick Hirling
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published
@@ -21,6 +18,7 @@
 #
 ###########################################################################
 
+
 import numpy as np
 import argparse
 import h5py
@@ -30,16 +28,8 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
 import pickle as pkl
 from tqdm import tqdm
-
-# ==================================================================
-# Script to Visualize a SWIFT simulation output by drawing a
-# surface density.
-# 
-# If a single snapshot is passed, creates an image, if multiple are
-# passed, creates a film.
-# The surface density is a 2D histogram of the positions of the
-# particles.
-# ==================================================================
+from pNbody.libutil import set_ranges
+from pNbody import Nbody
 
 # ================
 # Parse User input
@@ -56,28 +46,15 @@ parser.add_argument("--saveextract",action='store_true',help="Save the extracted
 # Histogram Parameters
 parser.add_argument("-nbins",type=int,default=400,help="Number of bins in each dimension (x,y)")
 parser.add_argument("-lim",type=float,default=0.5,help="Limits of histogram (in kpc)")
-parser.add_argument("--polar",action='store_true',help="Pot a r-phi histogram rather than an image")
 parser.add_argument("-view",type=str,default='xy',help="Which plane to image")
 
 # Image Parameters (Color, normalization,etc)
 parser.add_argument("-cmap",type=str,default='YlGnBu_r',help="Colormap (try YlGnBu_r, Magma !)")
-parser.add_argument("-norm",type=str,default='log',help='Color Norm to use')
-parser.add_argument("-gamma",type=float,help="Exponent of power law norm (use -norm power)")
 parser.add_argument("-cmin",type=float,default=None,help=
                     """Minimum Physical value in the Histogram.
                     This effectively sets the contrast of the images. Default: data minimum""")
 parser.add_argument("-cmax",type=float,default=None,help="Maximum physical value in the Histogram. Default: data maximum")
 parser.add_argument("-interp",type=str,default='none',help="Interpolation used ('none','kaiser','gaussian',...). Default: none")
-
-# Corotation Parameters
-parser.add_argument("-rcr",type=float,default=0.0,
-    help="Radius of the corotating origin, set to 0 for no corotation (default)")
-parser.add_argument("-acr",type=float,default=0,
-    help="Initial angle of the corotating origin")
-parser.add_argument("-vcr",type=float,default=200,
-    help="Circular velocity of the corotation")
-parser.add_argument("--set_origin",action='store_true',
-    help="Set the origin of the figure to the corotating origin (default: no)")
 
 # Figure Parameterrs
 parser.add_argument("--notex",action='store_true')
@@ -94,7 +71,18 @@ parser.add_argument("--headless",action='store_true',help="Flag to run on headle
 parser.add_argument("-bitrate",type=float,default=-1,help="Birate to use for ffmpeg")
 parser.add_argument("-dpi",type=float,default=300,help="DPI if an image is saved")
 
+# Corotation Parameters
+parser.add_argument("-rcr",type=float,default=0.0,
+    help="Radius of the corotating origin, set to 0 for no corotation (default)")
+parser.add_argument("-acr",type=float,default=0,
+    help="Initial angle of the corotating origin")
+parser.add_argument("-vcr",type=float,default=200,
+    help="Circular velocity of the corotation")
+parser.add_argument("--set_origin",action='store_true',
+    help="Set the origin of the figure to the corotating origin (default: no)")
+
 args = parser.parse_args()
+
 
 # =====================================
 # Define Functions and useful variables
@@ -116,33 +104,7 @@ if corot:
         x = np.cos(omega*t)*X - np.sin(omega*t)*Y - x0
         y = np.sin(omega*t)*X + np.cos(omega*t)*Y - y0
         return x,y
-
-
-# Histogramming for cartesian/polar
-if not args.polar:
-    def hist(x,y):
-        data = np.histogram2d(x,y,bins=args.nbins,range=[[-lim, lim], [-lim, lim]])[0]
-        return data.T
-else:
-    def hist(x,y):
-        r = np.sqrt(x**2 + y**2)
-        phi = np.arctan2(y,x)
-        data = np.histogram2d(r,phi,bins=args.nbins,range=[[0,lim],[-np.pi,np.pi]])[0]
-        return data.T
-
-# View
-if args.view == 'xy':
-    def select_data(pos):
-        return pos[:,0], pos[:,1]
-elif args.view == 'xz':
-    def select_data(pos):
-        return pos[:,0], pos[:,2]
-elif args.view == 'yz':
-    def select_data(pos):
-        return pos[:,1], pos[:,2]
-else:
-    raise NameError("Undefined view: " + str(args.view))
-
+    
 # Shift
 if len(sh) == 1:
     shift = np.array([sh[0],sh[0],sh[0]])
@@ -151,50 +113,64 @@ elif len(sh) == 3:
 else:
     raise ValueError("Shift can be scalar or 3-array")
 
+# TODO: adapt
+scale   = "log"
+mn      = None
+mx      = None
+cd      = None
+frsp    = 0 #2.5
+params = {}
+params['size']  	= (lim,lim)
+params['shape'] 	= (args.nbins,args.nbins)
+params['rendering']	= 'map'
+params['obs'] 	= None
+params['xp']  	= None
+params['view']	= args.view
+params['mode']	= 'm'
+params['exec']	= None
+params['macro']	= None
+params['frsp']	= frsp
+params['filter_name'] = None 
+
 # ============================================================
 # Extract Data from the snapshot(s) or load a previous extract
 # ============================================================
 if not args.openextract:
     nframes = len(fnames)
-    histdata = np.empty((nframes,args.nbins,args.nbins),dtype=np.uint16) # <- realistically no histogram elements
-                                                                       # larger than 60k (use int16 to save memory)
+    histdata = np.zeros((nframes,args.nbins,args.nbins),dtype=np.uint32)
     times = np.empty(nframes)
     print("Extracting Data...")
-    for i,fn in enumerate(fnames):
-        f = h5py.File(fn, "r")
-        pos = np.array(f["DMParticles"]["Coordinates"]) - shift
-        #IDs = np.array(f["DMParticles"]["ParticleIDs"])
-        t_ = f["Header"].attrs["Time"][0]
-        t_myr = t_ * f["Units"].attrs["Unit time in cgs (U_t)"][0]/ 31557600.0e6
-        x,y = select_data(pos)
-        if corot:
-            x,y = corotate_pos(x,y,t_)
-        histdata[i] = hist(x,y)
-        times[i] = t_myr
+    for i,fn in enumerate(tqdm(fnames)):
+        nb = Nbody(fn,ftype='swift')
+        nb.translate(-shift)
+        hh = 1e6*nb.CombiMap(params) # Multiply by 1M to ensure that close to 0 values are saved correctly
+        histdata[i] = hh
+        times[i] = nb.time
+
     print("done.")
-    
+
+    # If requested, save extracted histogram data to pickle file
     if args.saveextract:
-        infotext = "Time in Myrs, lim in kpc, 'hist' obj is a (nb_frames * nbins_x * nbins_y) array of int16"
-        if args.polar: tpe = 'polar'
-        else: tpe = 'cartesian'
-        output = {
-            'distunit': 'kpc',
-            'timeunit': 'Myr',
-            'lim' : lim,
-            'type': tpe,
-            'info' : infotext,
-            't' : times,
-            'hist' : histdata,
-            'rcr' : args.rcr,
-            'acr' : args.acr,
-            'vcr' : args.vcr,
-            'corot_origin' : args.set_origin
-        }
-        with open('extract.pkl','wb') as f:
-            pkl.dump(output,f)
+            print("Saving Extracted Data...")
+            infotext = "Time in Myrs, lim in kpc, 'hist' obj is a (nb_frames * nbins_x * nbins_y) array of int32"
+            output = {
+                'distunit': 'kpc',
+                'timeunit': 'Myr',
+                'lim' : lim,
+                'info' : infotext,
+                't' : times,
+                'hist' : histdata,
+                'rcr' : args.rcr,
+                'acr' : args.acr,
+                'vcr' : args.vcr,
+                'corot_origin' : args.set_origin
+            }
+            with open('extract.pkl','wb') as f:
+                pkl.dump(output,f)
 
 else:
     if len(fnames) == 1:
+        print("Reading "+fnames[0]+"...")
         with open(fnames[0],'rb') as f:
             extract = pkl.load(f)
         histdata = extract['hist']
@@ -204,8 +180,7 @@ else:
     else:
         print(fnames)
         raise RuntimeError("Can only open one extract")
-
-
+    
 # ====================
 # Create Image or Film
 # ====================
@@ -222,18 +197,6 @@ else:
 
 if vmin >= vmax:
     raise ValueError("vmin ({:n}) is >= vmax ({:n})".format(vmin,vmax))
-# Configure histogram color norm
-if args.norm == 'power':
-    norm = PowerNorm(gamma=args.gamma,vmin=vmin,vmax=vmax)
-elif args.norm == 'log':
-    if vmin == 0:
-        vmin = 1
-        histdata[histdata == 0] = 1
-    norm = LogNorm(clip=True,vmin=vmin,vmax=vmax)
-elif args.norm == 'linear':
-    norm = Normalize(vmin=vmin,vmax=vmax)
-else:
-    raise NameError("Unknown color norm: " + str(args.norm))
 
 # Configure Matplotlib
 if args.headless:
@@ -241,6 +204,7 @@ if args.headless:
     matplotlib.use('Agg')
 if not args.notex: plt.rcParams.update({"text.usetex": True,'font.size':2*args.figheight,'font.family': 'serif'})
 else: plt.rcParams.update({'font.size':15})
+
 
 # Construct figure
 fig, ax = plt.subplots(figsize=(args.figwidth,args.figheight))
@@ -254,36 +218,25 @@ else:
     space_unitstr = " [kpc]"
 
 # Define imshow extent
-if not args.polar:
-    ext = (-lim,lim,-lim,lim)
-else:
-    ext = (0,lim,-np.pi,np.pi)
+ext = (-lim,lim,-lim,lim)
+
 
 # Set axes limits and add labels if desired
-if not args.polar:
-    ax.set_xlim(-lim,lim)
-    ax.set_ylim(-lim,lim)
-    ax.set_aspect('equal')
-    if args.nolabels:
-        ax.set_xticks([])
-        ax.set_yticks([])
-    else:
-        ax.set_xlabel(args.view[0] + space_unitstr)
-        ax.set_ylabel(args.view[1] + space_unitstr)
+ax.set_xlim(-lim,lim)
+ax.set_ylim(-lim,lim)
+ax.set_aspect('equal')
+if args.nolabels:
+    ax.set_xticks([])
+    ax.set_yticks([])
 else:
-    ax.set_aspect(lim/(2*np.pi))
-    if args.nolabels:
-        ax.set_xticks([])
-        ax.set_yticks([])
-    else:
-        ax.set_xlabel('$r$ [kpc]')
-        ax.set_ylabel('$\phi$ [rad]')
-
+    ax.set_xlabel(args.view[0] + space_unitstr)
+    ax.set_ylabel(args.view[1] + space_unitstr)
 
 
 # Initialize Image
 im = ax.imshow(np.zeros((args.nbins,args.nbins)),
-                interpolation = args.interp, norm = norm,
+                interpolation = args.interp,
+                vmin=0,vmax=255,
                 extent = ext, cmap = args.cmap,origin='lower')
 
 # Initialize Title
@@ -293,14 +246,10 @@ ttl = ax.text(0.01, 0.99,"$t={:.2f}$".format(0)+ time_unitstr,
     color = 'white',
     transform = ax.transAxes)
 
-# Init function for animation (TODO: remove?)
-def init():
-        return im,
-
 # If a single file is passed, fill image and show
 if nframes == 1:
-    im.set_data(histdata[0])
-    ttl.set_text("$t={:.2f}$".format(times[0])+ time_unitstr)
+    hdat,mn_opt,mx_opt,cd_opt = set_ranges(histdata[0],scale=scale,cd=cd,mn=vmin,mx=vmax)
+    im.set_data(hdat)
 
 # If multiple files are passed and a dynamical output is wished, launch animation
 elif not args.saveframes:
@@ -311,8 +260,9 @@ elif not args.saveframes:
             title.set_text("$t={:.2f}$".format(times[i])+ time_unitstr)
         
             # Update image
-            im.set_data(histdata[i])
-            return im,ttl
+            hdat,mn_opt,mx_opt,cd_opt = set_ranges(histdata[i],scale=scale,cd=cd,mn=vmin,mx=vmax)
+            im.set_data(hdat)
+            return im, title
 
         return update
 
@@ -324,14 +274,13 @@ elif not args.saveframes:
         itrtr = range(nframes)
     # Animation
     ani = FuncAnimation(fig, prepare_anim(im,ttl),frames = itrtr,
-                    init_func = init,
                     blit=True)#cache_frame_data=False)
 
 # If multiple files are passed but a per-frame output is wished, fill image and save png for each frame
 else:
-    init()
     for i,h in enumerate(histdata):
-        im.set_data(h)
+        hdat,mn_opt,mx_opt,cd_opt = set_ranges(h,scale=scale,cd=cd,mn=vmin,mx=vmax)
+        im.set_data(hdat)
         ttl.set_text("$t={:.2f}$".format(times[i])+ time_unitstr)
         outfn = "frame_{:04n}.png".format(i)
         fig.savefig(outfn,dpi=args.dpi,bbox_inches='tight')

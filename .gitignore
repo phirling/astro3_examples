@@ -9,6 +9,9 @@ __pycache__/
 # hdf5 files
 *.hdf5
 
+# Pickled Data
+*.pkl
+
 # Pictures and Videos
 *.mp4
 
