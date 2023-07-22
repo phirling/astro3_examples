@@ -1,0 +1,2 @@
+# Command used to make nice films:
+python visualize.py [snapshots] -shift 0.5 -lim 0.8 -nbins 800 -x0 1 1 1 -xp 0 0 0 -frsp 0.3 -interp bilinear --savefilm -fps 30
