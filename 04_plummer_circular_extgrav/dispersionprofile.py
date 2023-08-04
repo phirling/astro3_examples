@@ -6,7 +6,7 @@ import h5py
 import matplotlib.pyplot as plt
 
 # Figure Parameters
-plt.rcParams.update({"text.usetex": True, "font.size": 22, "font.family": "serif"})
+#plt.rcParams.update({"text.usetex": True, "font.size": 22, "font.family": "serif"})
 figsize = (7,7)
 
 # ===============================================================
