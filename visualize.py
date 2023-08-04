@@ -153,7 +153,6 @@ if args.xp is None:
 else:
     params['xp'] = np.array(args.xp)
 params['alpha'] = args.alpha
-print(params['x0'])
 
 # Show Progress Bar only if multiple files
 def progbar(iterable):

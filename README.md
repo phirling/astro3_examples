@@ -33,13 +33,13 @@ To build SWIFT for the examples provided here, [clone](https://gitlab.cosma.dur.
 ```
 ./autogen.sh
 
-./configure --disable-compiler-warnings --disable-doxygen-doc --disable-hand-vec --with-ext-potential=[External Potential] --with-hdf5=[path/to/hdf5] --with-metis=[path/to/METIS]
+./configure --with-ext-potential=[External Potential] --with-hdf5=[path/to/hdf5] --with-metis=[path/to/METIS]
 
 # Compile using 4 threads (more if you wish)
 make -j 4
 ```
 Here, *[External Potential]* is be the name of an external potential used by SWIFT, for the examples that require it. It will be called *--with-ext-potential=point-mass-softened* for example 4 and *--with-ext-potential=nfw-mn* for examples 7-10. For the other examples, it can be either one since the external potential will be disabled at runtime. The location of the *hdf5* and *metis* libraries are
-system-dependent, but on a personal linux install are typically in /usr/. On macOS, they are typically in /usr/local/.
+system-dependent, but on a personal linux install are typically in /usr/. On macOS, they are typically in /usr/local/. If the compilation fails, especially on macOS, you can try appending the following flags to the configure call: `--disable-compiler-warnings --disable-doxygen-doc --disable-hand-vec`
 
 ### Running the examples
 The examples contain run scripts that assume the `swiftsim` directory (containing the compiled SWIFT executable) to be at the root of the repo. If you installed SWIFT elsewhere, please change the location at the start of the scripts.
