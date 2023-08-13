@@ -1,0 +1,40 @@
+==================================================
+Example 6: Plummer model with arbitrary anisotropy
+==================================================
+
+In this example, the mass distribution again follows a Plummer model. However, now, the velocity distribution
+is generated so that it satisfies the Jeans Equation for arbitrary (constant) values of the anisotropy
+parameter "beta" seen in class:
+beta = 1 - (sigma_phi^2 + sigma_theta^2)/2sigma_r^2
+
+Recall that:
+beta = -inf: purely circular orbits
+beta = 0: isotropic (ergodic) orbits
+beta = 1: purely radial orbits
+
+The first case has already been tested in the previous example. Here, we can play around with values in the
+interval (-inf,1]. The two examples shown in the lecture, along with the commands used to generate the
+corresponding IC file are:
+
+1. beta = 0
+python makeIC.py
+
+2. beta = 0.875
+python makeIC.py -beta 0.875
+
+By default, the ICs contain 256k particles. This number can be changed with the -N argument.
+The makeIC script also prints an estimate of the characteristic time of the system, chosen as the period of
+a circular orbit at the Plummer radius a. With the default parameters, the system is evolved for about six
+characteristic periods.
+
+After running SWIFT, the resulting output can be visualized using the provided script. To make the film shown
+in class, the parameters are:
+-shift 10 -lim 10 -cmap afmhot -nbins 800 -frsp 0.4 -interp bilinear -fps 50 --savefilm
+
+For reference, here are the exact commands used to produce the beta=0.875 movie:
+--------------------------------------------------------------------------------
+python makeIC.py -beta 0.875
+mkdir snap
+bash run.sh
+python ../visualize.py snap/snapshot_*.hdf5 -shift 10 -lim 10 -cmap afmhot -nbins 700 -frsp 0.4 -interp bilinear -fps 50 --savefilm
+mv film.mp4 06_plummer_beta_0.875.mp4
