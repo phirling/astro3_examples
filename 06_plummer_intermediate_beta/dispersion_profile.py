@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import argparse
 import h5py
 import matplotlib.pyplot as plt
+import cycler
 
 # Figure Parameters
 fontsz = 14
@@ -28,8 +29,20 @@ parser.add_argument("--saveplot", action='store_true')
 args = parser.parse_args()
 fnames = args.files
 
+# Set color cycle
+ncolor = len(fnames)
+color_cycle = plt.cm.plasma(np.linspace(0, 1,ncolor))
+plt.rcParams['axes.prop_cycle'] = cycler.cycler('color', color_cycle)
+
 # Define radial bins
 rbins = np.linspace(args.Rmin,args.Rmax,args.nbins)
+
+# Estimate Characteristic time:
+G = 1
+M = 100
+a = 1
+v_a = np.sqrt(G * M * a**2 * (a**2 + a**2)**(-3. / 2.))
+tdyn = 2*np.pi*a / v_a
 
 # Spherical angles of cartesian position
 def sph_angles(x, y, z):
@@ -48,7 +61,7 @@ for j,fname in enumerate(fnames):
     pos = np.array(f["DMParticles"]["Coordinates"]) - args.shift
     vel = np.array(f["DMParticles"]["Velocities"])
     time = (f["Header"].attrs["Time"][0])
-    t[j] = time
+    t[j] = time / tdyn
 
     # Compute radii and place particles in correct radial bins
     r = np.sqrt(np.sum((pos**2),axis=1))
@@ -84,14 +97,14 @@ fig2, ax2 = plt.subplots(figsize=figsize)
 for j in range(len(fnames)):
     idx = sigma[j,:] != -1
     if j == 0:
-        ax1.plot(rbins[idx],sigma_r[j,idx],label=f"$t={t[j]:.1f}$",color='black',lw=2)
-        ax2.plot(rbins[idx],sigma_t[j,idx],label=f"$t={t[j]:.1f}$",color='black',lw=2)
+        ax1.plot(rbins[idx],sigma_r[j,idx],label=f"$t={t[j]:.1f} \ t_{{c}}$",color='black',lw=2)
+        ax2.plot(rbins[idx],sigma_t[j,idx],label=f"$t={t[j]:.1f} \ t_{{c}}$",color='black',lw=2)
     else:
-        ax1.plot(rbins[idx],sigma_r[j,idx],label=f"$t={t[j]:.1f}$")
-        ax2.plot(rbins[idx],sigma_t[j,idx],label=f"$t={t[j]:.1f}$")
+        ax1.plot(rbins[idx],sigma_r[j,idx],label=f"$t={t[j]:.1f} \ t_{{c}}$")
+        ax2.plot(rbins[idx],sigma_t[j,idx],label=f"$t={t[j]:.1f} \ t_{{c}}$")
     #if args.v:  ax.plot(rbins[idx],sigma[j,idx],'-',label='Total')
-    ax1.set_xlabel('$r$',fontsize=fontsz+4)
-    ax2.set_xlabel('$r$',fontsize=fontsz+4)
+    ax1.set_xlabel('$r$ [kpc]',fontsize=fontsz+4)
+    ax2.set_xlabel('$r$ [kpc]',fontsize=fontsz+4)
     ax1.set_ylabel('$\sigma_r^2$',fontsize=fontsz+4)
     ax2.set_ylabel('$\sigma_t^2$',fontsize=fontsz+4)
 

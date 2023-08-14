@@ -1,0 +1,34 @@
+===========================================================
+Example 5: Plummer model with circular orbits, self-gravity
+===========================================================
+
+This is the same scenario as the previous example, except that now the system evolves under its
+own self-gravity rather than an external potential. The instructions are the same as previously,
+namely
+> mkdir snap
+> python makeIC.py
+> bash run.sh
+
+Note that it doesn't matter if SWIFT was configured/compiled with an external potential, as it
+is disabled at runtime in the run.sh script.
+
+To visualize the results, as before run
+> python ../visualize.py snap/snapshot_*.hdf5 -shift 10 -lim 5 -nbins 800 -frsp 0.4 -interp bilinear -fps 50 --savefilm
+
+Plot the Velocity Dispersion
+----------------------------
+To see how the dispersion of the different components of the velocity evolves with time, the script
+dispersion_profile.py is provided. By default, when given a set of snapshots, the script will produce
+two plots corresponding to the radial and tangential components of the velocty dispersion against radius,
+for each snapshot. It achieves this by placing the particles in radial bins, projecting their velocities
+onto r and t components and computing the variance. Assuming default parameters were used, the following
+produces a comprehensive plot of the time-evolution:
+> python dispersion_profile.py snap/snapshot_0*00.hdf5 -Rmax 7
+To save the plot, append --saveplot to the command.
+
+Plot the Density profile
+------------------------
+To quantify how the initially spherical, Plummer mass distribution evolves, the density_profile.py script is used
+to plot the mass density against radius, for a set of snapshot files (as above). To use the script, run e.g.
+> python density_profile.py snap/snapshot_0*00.hdf5
+To save the plot, append --saveplot to the command.

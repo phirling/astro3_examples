@@ -31,15 +31,17 @@ The makeIC script also prints an estimate of the characteristic time of the syst
 a circular orbit at the Plummer radius a. With the default parameters, the system is evolved for about six
 characteristic periods.
 
-After running SWIFT, the resulting output can be visualized using the provided script. To make the film shown
-in class, the parameters are:
--shift 10 -lim 7 -cmap afmhot -nbins 800 -frsp 0.4 -interp bilinear -fps 60 --savefilm
+SWIFT can then be run on the ICs either in self-gravity mode:
+> bash run.sh
 
-For reference, here are the exact commands used to produce the beta=0.875 movie:
+or in external gravity mode:
+> bash run_external_gravity.sh
+
+For reference, here are the exact commands used to produce the self-gravity beta=0.875 movie:
 > python makeIC.py -beta 0.875
 > mkdir snap
 > bash run.sh
-> python ../visualize.py snap/snapshot_*.hdf5 -shift 10 -lim 7 -cmap afmhot -nbins 800 -frsp 0.4 -interp bilinear -fps 60 --savefilm
+> python ../visualize.py snap/snapshot_*.hdf5 -shift 10 -lim 5 -nbins 800 -frsp 0.4 -interp bilinear -fps 50 --savefilm
 > mv film.mp4 06_plummer_beta_0.875.mp4
 
 Plot the Velocity Dispersion

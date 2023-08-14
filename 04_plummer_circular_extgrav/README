@@ -1,15 +1,51 @@
-This example follows particles in an EXTERNAL plummer potential on circular trajectories.
+===============================================================
+Example 4: Plummer model with circular orbits, external gravity
+===============================================================
 
-To use it, SWIFT has to be compiled with the flag --with-ext-potential=point-mass-softened (set at configuration time).
+In this example, we consider a mass distribution that follows the Plummer model, also called the
+"softened point mass". It is a spherical system with a potential is very similar to the 1/r of
+the simple point mass, but it introduces a so-called "softening length" (usually denoted by the
+letter a or epsilon) that removes the singularity at the origin and, as its name suggests,
+softens the density profile.
 
-Be careful to set the parameters of the external potential (in params.yml) to the same values as those of the IC file
-(set in makeIC.py). Namely, the position, softening length and total mass of the potential. The postition is equivalent
-to the shift.
+For the velocity distribution, we take here the very simple case of purely circular orbits, that is,
+the magnitude of the velocity of each particle corresponds to the circular velocity at the particle's
+radius, for the Plummer potential. The direction of the velocity lies on its tangential plane, with
+random orientation. The point is to illustrate that this very simple setup is highly unstable under
+its own self-gravity.
 
-The default is a potential with softening length 0.1 and total mass 1.0.
+First, we ignore self-gravity and impose an external potential on the particles. For this, SWIFT has
+to be compiled with the flag --with-ext-potential=point-mass-softened (set at configuration time).
+The parameters of the external potential are set in params.yml and should match those used to generate
+the initial conditions of the particles, set in makeIC.py. This is the case by default.
 
-For this example, SWIFT was compiled with the following configuration:
 
-./configure --disable-compiler-warnings --disable-doxygen-doc --disable-hand-vec --with-ext-potential=point-mass-softened --with-hdf5=/usr/local/hdf5/bin/h5cc --with-metis=/usr/local/
+Running the example & visualizing the output
+--------------------------------------------
+To generate the ICs using default values and run the simulation:
+> mkdir snap
+> python makeIC.py
+> bash run.sh
 
-(The location of the hdf5 and metis libraries may vary on your system)
+By default, the ICs contain 256k particles. This number can be changed with the -N argument.
+
+To visualize the results, the film used in the lecture is made using
+> python ../visualize.py snap/snapshot_*.hdf5 -shift 10 -lim 5 -nbins 800 -frsp 0.4 -interp bilinear -fps 50 --savefilm
+
+Plot the Velocity Dispersion
+----------------------------
+To see how the dispersion of the different components of the velocity evolves with time, the script
+dispersion_profile.py is provided. By default, when given a set of snapshots, the script will produce
+two plots corresponding to the radial and tangential components of the velocty dispersion against radius,
+for each snapshot. It achieves this by placing the particles in radial bins, projecting their velocities
+onto r and t components and computing the variance. Assuming default parameters were used, the following
+produces a comprehensive plot of the time-evolution:
+> python dispersion_profile.py snap/snapshot_0*00.hdf5 -Rmax 7
+To save the plot, append --saveplot to the command.
+
+Plot the Density profile
+------------------------
+To quantify how the initially spherical, Plummer mass distribution evolves, the density_profile.py script is used
+to plot the mass density against radius, for a set of snapshot files (as above). To use the script, run e.g.
+> python density_profile.py snap/snapshot_0*00.hdf5
+To save the plot, append --saveplot to the command.
