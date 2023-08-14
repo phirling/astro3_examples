@@ -13,14 +13,18 @@ beta = 0: isotropic (ergodic) orbits
 beta = 1: purely radial orbits
 
 The first case has already been tested in the previous example. Here, we can play around with values in the
-interval (-inf,1]. The two examples shown in the lecture, along with the commands used to generate the
+interval (-inf,1].
+
+Running the example & visualizing the output
+--------------------------------------------
+The two examples shown in the lecture, along with the commands used to generate the
 corresponding IC file are:
 
 1. beta = 0
-python makeIC.py
+> python makeIC.py
 
 2. beta = 0.875
-python makeIC.py -beta 0.875
+> python makeIC.py -beta 0.875
 
 By default, the ICs contain 256k particles. This number can be changed with the -N argument.
 The makeIC script also prints an estimate of the characteristic time of the system, chosen as the period of
@@ -29,12 +33,29 @@ characteristic periods.
 
 After running SWIFT, the resulting output can be visualized using the provided script. To make the film shown
 in class, the parameters are:
--shift 10 -lim 10 -cmap afmhot -nbins 800 -frsp 0.4 -interp bilinear -fps 50 --savefilm
+-shift 10 -lim 7 -cmap afmhot -nbins 800 -frsp 0.4 -interp bilinear -fps 60 --savefilm
 
 For reference, here are the exact commands used to produce the beta=0.875 movie:
---------------------------------------------------------------------------------
-python makeIC.py -beta 0.875
-mkdir snap
-bash run.sh
-python ../visualize.py snap/snapshot_*.hdf5 -shift 10 -lim 10 -cmap afmhot -nbins 700 -frsp 0.4 -interp bilinear -fps 50 --savefilm
-mv film.mp4 06_plummer_beta_0.875.mp4
+> python makeIC.py -beta 0.875
+> mkdir snap
+> bash run.sh
+> python ../visualize.py snap/snapshot_*.hdf5 -shift 10 -lim 7 -cmap afmhot -nbins 800 -frsp 0.4 -interp bilinear -fps 60 --savefilm
+> mv film.mp4 06_plummer_beta_0.875.mp4
+
+Plot the Velocity Dispersion
+----------------------------
+To see how the dispersion of the different components of the velocity evolves with time, the script
+dispersion_profile.py is provided. By default, when given a set of snapshots, the script will produce
+two plots corresponding to the radial and tangential components of the velocty dispersion against radius,
+for each snapshot. It achieves this by placing the particles in radial bins, projecting their velocities
+onto r and t components and computing the variance. Assuming default parameters were used, the following
+produces a comprehensive plot of the time-evolution:
+> python dispersion_profile.py snap/snapshot_0*00.hdf5 -Rmax 7
+To save the plot, append --saveplot to the command.
+
+Plot the Density profile
+------------------------
+To quantify how the initially spherical, Plummer mass distribution evolves, the density_profile.py script is used
+to plot the mass density against radius, for a set of snapshot files (as above). To use the script, run e.g.
+> python density_profile.py snap/snapshot_0*00.hdf5
+To save the plot, append --saveplot to the command.
