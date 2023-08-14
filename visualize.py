@@ -23,6 +23,7 @@ import numpy as np
 import argparse
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
 import pickle as pkl
 from tqdm import tqdm
@@ -33,6 +34,15 @@ try:
     import cmasher as cmr
 except ImportError:
     pass
+
+# Default colormap (custom)
+clrs = np.array(
+[[0, 0, 0],
+[151, 0, 110],
+[255, 142, 142],
+[255, 220, 193],
+[255, 255, 255]])
+cmap1 = LinearSegmentedColormap.from_list("mycmap", clrs/255)
 
 # ================
 # Parse User input
@@ -52,8 +62,8 @@ parser.add_argument("-lim",type=float,default=0.5,help="Physical limit (max posi
 parser.add_argument("-view",type=str,default='xy',help="Which plane to image")
 parser.add_argument("-mode",type=str,default='m',help="Physical quantity to be imaged, default: 'm' (mass density)")
 
-# Image Parameters (Color, normalization,etc)
-parser.add_argument("-cmap",type=str,default='YlGnBu_r',help="Colormap (try YlGnBu_r, Magma !). Cmasher cmaps are available, e.g. cmr.dusk, cmr.ocean,...")
+# Image Parameters (Color, normalization,etc) #'YlGnBu_r'
+parser.add_argument("-cmap",type=str,default=None,help="Colormap (try YlGnBu_r, Magma !). Cmasher cmaps are available, e.g. cmr.dusk, cmr.ocean,...")
 parser.add_argument("-cmin",type=float,default=None,help= "Minimum Physical value in the Histogram. This effectively sets the contrast of the images. Default: data minimum")
 parser.add_argument("-cmax",type=float,default=None,help="Maximum physical value in the Histogram. Default: data maximum")
 parser.add_argument("-interp",type=str,default='none',help="Interpolation used ('none','kaiser','gaussian',...). Default: none")
@@ -262,7 +272,8 @@ else:
 
 
 # Initialize Image
-cmap = plt.get_cmap(args.cmap)
+if args.cmap is None: cmap = cmap1
+else: cmap = plt.get_cmap(args.cmap)
 im = ax.imshow(np.zeros((nbins,nbins)),
                 interpolation = args.interp,
                 vmin=0,vmax=255,
@@ -286,7 +297,7 @@ elif not args.saveframes:
     def prepare_anim(im,title):
         def update(i):    
             # Title
-            title.set_text("$t={:.2f}$".format(times[i])+ time_unitstr)
+            title.set_text("$t={:.2f}$".format(times[i]))#+ time_unitstr)
         
             # Update image
             hdat,mn_opt,mx_opt,cd_opt = set_ranges(histdata[i],scale=scale,cd=cd,mn=vmin,mx=vmax)
@@ -310,7 +321,7 @@ else:
     for i,h in enumerate(histdata):
         hdat,mn_opt,mx_opt,cd_opt = set_ranges(h,scale=scale,cd=cd,mn=vmin,mx=vmax)
         im.set_data(hdat)
-        ttl.set_text("$t={:.2f}$".format(times[i])+ time_unitstr)
+        ttl.set_text("$t={:.2f}$".format(times[i]))#+ time_unitstr)
         outfn = "frame_{:04n}.png".format(i)
         fig.savefig(outfn,dpi=args.dpi,bbox_inches='tight')
 
